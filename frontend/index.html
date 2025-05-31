@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dota 2 Patch Analyzer</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.5.0/umd/Recharts.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        // React App Code
+        const { useState, useEffect, useCallback, useMemo } = React;
+        const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+        // Styles object for consistent styling
+        const styles = {
+            container: {
+                minHeight: '100vh',
+                backgroundColor: '#000000',
+                color: '#e0e0e0',
+                fontFamily: 'Arial, sans-serif'
+            },
+            header: {
+                background: 'linear-gradient(to bottom, #111111, #000000)',
+                borderBottom: '1px solid #dc143c',
+                padding: '2rem 0',
+                textAlign: 'center'
+            },
+            logo: {
+                width: '80px',
+                height: '80px',
+                background: 'linear-gradient(135deg, #8B0000, #DC143C)',
+                transform: 'rotate(45deg)',
+                margin: '0 auto 2rem',
+                position: 'relative',
+                boxShadow: '0 0 30px rgba(220, 20, 60, 0.5)'
+            },
+            logoInner: {
+                position: 'absolute',
+                top: '20px',
+                left: '20px',
+                right: '20px',
+                bottom: '20px',
+                background: '#000',
+                transform: 'rotate(-45deg)'
+            },
+            title: {
+                fontSize: '3rem',
+                fontWeight: 'bold',
+                background: 'linear-gradient(to bottom, #ffffff, #808080)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '4px',
+                textTransform: 'uppercase',
+                margin: '0'
+            },
+            subtitle: {
+                color: '#808080',
+                fontSize: '1.1rem',
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                marginTop: '0.5rem'
+            },
+            mainContainer: {
+                maxWidth: '1400px',
+                margin: '0 auto',
+                padding: '2rem'
+            },
+            panel: {
+                background: 'linear-gradient(135deg, #1a1a1a, #0d0d0d)',
+                border: '1px solid #333',
+                borderRadius: '8px',
+                padding: '1.5rem',
+                marginBottom: '2rem'
+            },
+            controlGroup: {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1rem'
+            },
+            label: {
+                display: 'block',
+                color: '#c0c0c0',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                marginBottom: '0.5rem'
+            },
+            input: {
+                width: '100%',
+                backgroundColor: '#0a0a0a',
+                border: '1px solid #333',
+                color: '#c0c0c0',
+                padding: '0.75rem',
+                borderRadius: '4px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.3s'
+            },
+            button: {
+                background: 'linear-gradient(to bottom, #DC143C, #8B0000)',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 2rem',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                transition: 'all 0.3s',
+                fontSize: '14px'
+            },
+            tabs: {
+                display: 'flex',
+                gap: '1px',
+                backgroundColor: '#333',
+                padding: '1px',
+                borderRadius: '8px',
+                marginBottom: '2rem',
+                flexWrap: 'wrap'
+            },
+            tab: {
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(to bottom, #1a1a1a, #0d0d0d)',
+                color: '#808080',
+                cursor: 'pointer',
+                border: 'none',
+                transition: 'all 0.3s',
+                textTransform: 'uppercase',
+                fontSize: '0.875rem',
+                letterSpacing: '1px',
+                flex: '1',
+                minWidth: '120px',
+                textAlign: 'center'
+            },
+            activeTab: {
+                background: 'linear-gradient(to bottom, #2a0000, #1a0000)',
+                color: '#fff',
+                borderBottom: '2px solid #DC143C'
+            },
+            heroGrid: {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                gap: '1.5rem',
+                marginBottom: '2rem'
+            },
+            heroCard: {
+                background: 'linear-gradient(135deg, #1a1a1a, #0d0d0d)',
+                border: '1px solid #333',
+                borderRadius: '8px',
+                padding: '1.5rem',
+                transition: 'all 0.3s',
+                cursor: 'pointer'
+            },
+            heroCardHover: {
+                border: '1px solid #DC143C',
+                transform: 'translateY(-4px)',
+                boxShadow: '0 10px 30px rgba(220, 20, 60, 0.3)'
+            },
+            heroHeader: {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: '1rem'
+            },
+            heroName: {
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                color: '#e0e0e0',
+                margin: '0'
+            },
+            tierBadge: {
+                padding: '0.25rem 0.75rem',
+                borderRadius: '4px',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                textTransform: 'uppercase'
+            },
+            statRow: {
+                marginBottom: '1rem'
+            },
+            statHeader: {
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '0.25rem'
+            },
+            statLabel: {
+                color: '#808080',
+                fontSize: '0.875rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+            },
+            statBar: {
+                height: '4px',
+                backgroundColor: '#1a1a1a',
+                borderRadius: '2px',
+                overflow: 'hidden'
+            },
+            statFill: {
+                height: '100%',
+                background: 'linear-gradient(to right, #8B0000, #DC143C)',
+                transition: 'width 0.8s ease-out'
+            },
+            loading: {
+                textAlign: 'center',
+                padding: '4rem',
+                color: '#808080'
+            },
+            error: {
+                background: 'linear-gradient(135deg, rgba(139, 0, 0, 0.2), rgba(0, 0, 0, 0.2))',
+                border: '1px solid #8B0000',
+                borderRadius: '8px',
+                padding: '2rem',
+                textAlign: 'center',
+                color: '#ff6b6b'
+            }
+        };
+
+        // API Configuration
+        const API_CONFIG = {
+            BACKEND_URL: 'http://localhost:3001/api',
+            OPENDOTA_BASE_URL: 'https://api.opendota.com/api'
+        };
+
+        // Hero role mapping
+        const HERO_ROLE_MAP = {
+            "Anti-Mage": ["carry"],
+            "Axe": ["offlane"],
+            "Bane": ["support", "hard-support"],
+            "Bloodseeker": ["carry", "mid"],
+            "Crystal Maiden": ["support", "hard-support"],
+            "Drow Ranger": ["carry"],
+            "Earthshaker": ["support", "offlane"],
+            "Juggernaut": ["carry"],
+            "Mirana": ["support", "offlane", "carry"],
+            "Morphling": ["carry", "mid"],
+            "Shadow Fiend": ["mid"],
+            "Phantom Lancer": ["carry"],
+            "Puck": ["mid", "offlane"],
+            "Pudge": ["mid", "support"],
+            "Razor": ["mid", "carry"],
+            "Sand King": ["offlane", "support"],
+            "Storm Spirit": ["mid"],
+            "Sven": ["carry"],
+            "Tiny": ["mid", "carry", "support"],
+            "Vengeful Spirit": ["support", "hard-support"],
+            "Windranger": ["mid", "support", "offlane"],
+            "Zeus": ["mid"],
+            "Kunkka": ["mid", "support"],
+            "Lina": ["mid", "support"],
+            "Lion": ["support", "hard-support"],
+            "Shadow Shaman": ["support", "hard-support"],
+            "Slardar": ["offlane"],
+            "Tidehunter": ["offlane"],
+            "Witch Doctor": ["support", "hard-support"],
+            "Lich": ["support", "hard-support"],
+            "Riki": ["carry", "support"],
+            "Enigma": ["offlane"],
+            "Tinker": ["mid"],
+            "Sniper": ["mid", "carry"],
+            "Necrophos": ["mid", "offlane"],
+            "Warlock": ["support", "hard-support"],
+            "Beastmaster": ["offlane"],
+            "Queen of Pain": ["mid"],
+            "Venomancer": ["support", "offlane"],
+            "Faceless Void": ["carry", "offlane"],
+            "Wraith King": ["carry", "support"],
+            "Death Prophet": ["mid"],
+            "Phantom Assassin": ["carry"],
+            "Pugna": ["mid", "support"],
+            "Templar Assassin": ["mid"],
+            "Viper": ["mid", "carry"],
+            "Luna": ["carry"],
+            "Dragon Knight": ["mid", "offlane"],
+            "Dazzle": ["support", "hard-support"],
+            "Clockwerk": ["offlane", "support"],
+            "Leshrac": ["mid", "support"],
+            "Nature's Prophet": ["offlane", "support"],
+            "Lifestealer": ["carry"],
+            "Dark Seer": ["offlane"],
+            "Clinkz": ["carry", "mid"],
+            "Omniknight": ["support", "offlane"],
+            "Enchantress": ["support", "offlane"],
+            "Huskar": ["mid", "carry"],
+            "Night Stalker": ["offlane", "mid"],
+            "Broodmother": ["mid", "offlane"],
+            "Bounty Hunter": ["offlane", "support"],
+            "Weaver": ["carry"],
+            "Jakiro": ["support", "hard-support"],
+            "Batrider": ["mid", "offlane"],
+            "Chen": ["support", "hard-support"],
+            "Spectre": ["carry"],
+            "Ancient Apparition": ["support", "hard-support"],
+            "Doom": ["offlane"],
+            "Ursa": ["carry"],
+            "Spirit Breaker": ["offlane", "support"],
+            "Gyrocopter": ["carry", "support"],
+            "Alchemist": ["carry", "mid"],
+            "Invoker": ["mid"],
+            "Silencer": ["support", "mid"],
+            "Outworld Destroyer": ["mid"],
+            "Lycan": ["carry", "offlane"],
+            "Brewmaster": ["offlane", "mid"],
+            "Shadow Demon": ["support", "hard-support"],
+            "Lone Druid": ["carry", "mid"],
+            "Chaos Knight": ["carry"],
+            "Meepo": ["mid"],
+            "Treant Protector": ["support", "hard-support", "offlane"],
+            "Ogre Magi": ["support", "hard-support"],
+            "Undying": ["support", "offlane"],
+            "Rubick": ["support"],
+            "Disruptor": ["support", "hard-support"],
+            "Nyx Assassin": ["support", "offlane"],
+            "Naga Siren": ["carry", "support"],
+            "Keeper of the Light": ["support", "hard-support"],
+            "Io": ["support", "hard-support"],
+            "Visage": ["support", "mid"],
+            "Slark": ["carry"],
+            "Medusa": ["carry"],
+            "Troll Warlord": ["carry"],
+            "Centaur Warrunner": ["offlane"],
+            "Magnus": ["offlane", "mid"],
+            "Timbersaw": ["offlane", "mid"],
+            "Bristleback": ["offlane"],
+            "Tusk": ["support", "offlane"],
+            "Skywrath Mage": ["support", "mid"],
+            "Abaddon": ["support", "offlane"],
+            "Elder Titan": ["offlane", "support"],
+            "Legion Commander": ["offlane"],
+            "Techies": ["support", "offlane"],
+            "Ember Spirit": ["mid", "carry"],
+            "Earth Spirit": ["support", "offlane"],
+            "Underlord": ["offlane"],
+            "Terrorblade": ["carry"],
+            "Phoenix": ["support", "offlane"],
+            "Oracle": ["support", "hard-support"],
+            "Winter Wyvern": ["support", "hard-support"],
+            "Arc Warden": ["mid", "carry"],
+            "Monkey King": ["carry", "mid", "support"],
+            "Dark Willow": ["support", "mid"],
+            "Pangolier": ["offlane", "mid"],
+            "Grimstroke": ["support"],
+            "Mars": ["offlane"],
+            "Void Spirit": ["mid"],
+            "Snapfire": ["support", "hard-support"],
+            "Hoodwink": ["support", "mid"],
+            "Dawnbreaker": ["offlane", "mid"],
+            "Marci": ["support", "offlane"],
+            "Primal Beast": ["offlane"],
+            "Muerta": ["carry", "mid"]
+        };
+
+        // Header Component
+        const Header = () => (
+            <div style={styles.header}>
+                <div style={styles.logo}>
+                    <div style={styles.logoInner}></div>
+                </div>
+                <h1 style={styles.title}>Patch Analyzer</h1>
+                <p style={styles.subtitle}>Master the Meta</p>
+            </div>
+        );
+
+        // Hero Card Component
+        const HeroCard = ({ hero }) => {
+            const [isHovered, setIsHovered] = useState(false);
+            
+            const getTierStyle = (tier) => {
+                const tierStyles = {
+                    'S': { background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000' },
+                    'A': { background: 'linear-gradient(135deg, #DC143C, #8B0000)', color: '#fff' },
+                    'B': { background: 'linear-gradient(135deg, #4169E1, #1E3A8A)', color: '#fff' },
+                    'C': { background: 'linear-gradient(135deg, #696969, #2F4F4F)', color: '#fff' }
+                };
+                return tierStyles[tier] || tierStyles['C'];
+            };
+            
+            return (
+                <div 
+                    style={{
+                        ...styles.heroCard,
+                        ...(isHovered ? styles.heroCardHover : {})
+                    }}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
+                    <div style={styles.heroHeader}>
+                        <h3 style={styles.heroName}>{hero.name}</h3>
+                        <span style={{...styles.tierBadge, ...getTierStyle(hero.tier)}}>
+                            {hero.tier}
+                        </span>
+                    </div>
+                    
+                    <div>
+                        <div style={styles.statRow}>
+                            <div style={styles.statHeader}>
+                                <span style={styles.statLabel}>Win Rate</span>
+                                <span style={{ 
+                                    fontWeight: '600', 
+                                    color: hero.winRate > 50 ? '#90EE90' : '#FFB6C1' 
+                                }}>
+                                    {hero.winRate}%
+                                </span>
+                            </div>
+                            <div style={styles.statBar}>
+                                <div style={{...styles.statFill, width: `${hero.winRate}%`}} />
+                            </div>
+                        </div>
+                        
+                        <div style={styles.statRow}>
+                            <div style={styles.statHeader}>
+                                <span style={styles.statLabel}>Pick Rate</span>
+                                <span style={{ fontWeight: '600' }}>{hero.pickRate}%</span>
+                            </div>
+                            <div style={styles.statBar}>
+                                <div style={{...styles.statFill, width: `${Math.min(hero.pickRate * 2, 100)}%`}} />
+                            </div>
+                        </div>
+                        
+                        <div style={styles.statRow}>
+                            <div style={styles.statHeader}>
+                                <span style={styles.statLabel}>Ban Rate</span>
+                                <span style={{ fontWeight: '600' }}>{hero.banRate}%</span>
+                            </div>
+                            <div style={styles.statBar}>
+                                <div style={{...styles.statFill, width: `${Math.min(hero.banRate * 2, 100)}%`}} />
+                            </div>
+                        </div>
+                        
+                        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #333' }}>
+                            {hero.changes.map((change, index) => (
+                                <div 
+                                    key={index}
+                                    style={{
+                                        fontSize: '0.875rem',
+                                        marginBottom: '0.5rem',
+                                        paddingLeft: '1rem',
+                                        borderLeft: `2px solid ${change.type === 'buff' ? '#90EE90' : '#FFB6C1'}`,
+                                        color: change.type === 'buff' ? '#90EE90' : '#FFB6C1'
+                                    }}
+                                >
+                                    {change.text}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [heroes, setHeroes] = useState([]);
+            const [filteredHeroes, setFilteredHeroes] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [filters, setFilters] = useState({
+                dataSource: 'backend',
+                patch: '7.37',
+                rank: 'all',
+                minGames: 1000
+            });
+            const [activeRole, setActiveRole] = useState('all');
+            
+            // Process hero data
+            const processHeroData = useCallback((heroStats) => {
+                const bracketMap = {
+                    'herald': 1,
+                    'guardian': 2,
+                    'crusader': 3,
+                    'archon': 4,
+                    'legend': 5,
+                    'ancient': 6,
+                    'divine': 7,
+                    'all': 0
+                };
+                
+                const bracket = bracketMap[filters.rank] || 0;
+                
+                const processedHeroes = heroStats.map((hero) => {
+                    let wins = 0;
+                    let picks = 0;
+                    
+                    if (filters.rank === 'all') {
+                        for (let i = 1; i <= 8; i++) {
+                            wins += hero[`${i}_win`] || 0;
+                            picks += hero[`${i}_pick`] || 0;
+                        }
+                    } else if (filters.rank === 'divine') {
+                        wins = (hero['7_win'] || 0) + (hero['8_win'] || 0);
+                        picks = (hero['7_pick'] || 0) + (hero['8_pick'] || 0);
+                    } else {
+                        wins = hero[`${bracket}_win`] || 0;
+                        picks = hero[`${bracket}_pick`] || 0;
+                    }
+                    
+                    const winRate = picks > 10 ? parseFloat((wins / picks * 100).toFixed(1)) : 0;
+                    const pickRate = parseFloat((picks / 1000).toFixed(1));
+                    const banRate = parseFloat(((hero.pro_ban || 0) / 100).toFixed(1));
+                    
+                    // Determine tier
+                    let tier = 'C';
+                    if (winRate > 54 || (winRate > 52 && pickRate > 15)) tier = 'S';
+                    else if (winRate > 52 || (winRate > 50 && pickRate > 10)) tier = 'A';
+                    else if (winRate > 48) tier = 'B';
+                    
+                    // Analyze trends
+                    const changes = [];
+                    if (winRate > 52) {
+                        changes.push({ type: "buff", text: "Strong in current meta" });
+                        if (winRate > 55) {
+                            changes.push({ type: "buff", text: "Dominating games" });
+                        }
+                    } else if (winRate < 48) {
+                        changes.push({ type: "nerf", text: "Struggling in current meta" });
+                        if (winRate < 45) {
+                            changes.push({ type: "nerf", text: "Needs buffs" });
+                        }
+                    } else {
+                        changes.push({ type: "buff", text: "Balanced performance" });
+                    }
+                    
+                    return {
+                        id: hero.id,
+                        name: hero.localized_name,
+                        role: HERO_ROLE_MAP[hero.localized_name] || ["support"],
+                        winRate,
+                        pickRate,
+                        banRate,
+                        tier,
+                        changes
+                    };
+                });
+                
+                return processedHeroes
+                    .filter(hero => hero.pickRate > 0.1)
+                    .sort((a, b) => (b.winRate * b.pickRate) - (a.winRate * a.pickRate));
+            }, [filters.rank]);
+            
+            // Fetch data
+            const fetchData = useCallback(async () => {
+                setLoading(true);
+                setError(null);
+                
+                try {
+                    // Use backend server to avoid CORS issues
+                    const url = `${API_CONFIG.BACKEND_URL}/heroes?patch=${filters.patch}&rank=${filters.rank}`;
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch hero data');
+                    }
+                    
+                    const data = await response.json();
+                    const processedData = processHeroData(data);
+                    setHeroes(processedData);
+                    setFilteredHeroes(processedData);
+                    
+                } catch (err) {
+                    setError(err.message);
+                    console.error('Error fetching data:', err);
+                } finally {
+                    setLoading(false);
+                }
+            }, [processHeroData, filters]);
+            
+            // Filter by role
+            useEffect(() => {
+                if (activeRole === 'all') {
+                    setFilteredHeroes(heroes);
+                } else {
+                    setFilteredHeroes(heroes.filter(hero => hero.role.includes(activeRole)));
+                }
+            }, [activeRole, heroes]);
+            
+            // Analytics data
+            const analyticsData = useMemo(() => {
+                const roleDistribution = {};
+                const tierDistribution = { S: 0, A: 0, B: 0, C: 0 };
+                
+                heroes.forEach(hero => {
+                    hero.role.forEach(role => {
+                        roleDistribution[role] = (roleDistribution[role] || 0) + 1;
+                    });
+                    tierDistribution[hero.tier]++;
+                });
+                
+                return {
+                    roleData: Object.entries(roleDistribution).map(([role, count]) => ({
+                        role: role.replace('-', ' '),
+                        count
+                    })),
+                    tierData: Object.entries(tierDistribution).map(([tier, count]) => ({ tier, count }))
+                };
+            }, [heroes]);
+            
+            return (
+                <div style={styles.container}>
+                    <Header />
+                    
+                    <div style={styles.mainContainer}>
+                        {/* Controls */}
+                        <div style={styles.panel}>
+                            <div style={styles.controlGroup}>
+                                <div>
+                                    <label style={styles.label}>Data Source</label>
+                                    <select
+                                        style={styles.input}
+                                        value={filters.dataSource}
+                                        onChange={(e) => setFilters({...filters, dataSource: e.target.value})}
+                                    >
+                                        <option value="backend">Backend Server</option>
+                                        <option value="opendota">OpenDota Direct</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label style={styles.label}>Patch</label>
+                                    <select
+                                        style={styles.input}
+                                        value={filters.patch}
+                                        onChange={(e) => setFilters({...filters, patch: e.target.value})}
+                                    >
+                                        <option value="7.37">7.37 (Current)</option>
+                                        <option value="7.36">7.36</option>
+                                        <option value="7.35">7.35</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label style={styles.label}>Rank Filter</label>
+                                    <select
+                                        style={styles.input}
+                                        value={filters.rank}
+                                        onChange={(e) => setFilters({...filters, rank: e.target.value})}
+                                    >
+                                        <option value="all">All Ranks</option>
+                                        <option value="herald">Herald</option>
+                                        <option value="guardian">Guardian</option>
+                                        <option value="crusader">Crusader</option>
+                                        <option value="archon">Archon</option>
+                                        <option value="legend">Legend</option>
+                                        <option value="ancient">Ancient</option>
+                                        <option value="divine">Divine+</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label style={styles.label}>Min Games</label>
+                                    <input
+                                        type="number"
+                                        style={styles.input}
+                                        value={filters.minGames}
+                                        onChange={(e) => setFilters({...filters, minGames: e.target.value})}
+                                        min="100"
+                                        max="10000"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <button
+                                style={styles.button}
+                                onClick={fetchData}
+                                disabled={loading}
+                            >
+                                {loading ? 'Analyzing...' : 'Analyze Meta'}
+                            </button>
+                        </div>
+                        
+                        {/* Analytics Dashboard */}
+                        {heroes.length > 0 && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                                <div style={styles.panel}>
+                                    <h3 style={{ marginBottom: '1rem', color: '#e0e0e0' }}>Role Distribution</h3>
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <BarChart data={analyticsData.roleData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                            <XAxis dataKey="role" stroke="#808080" angle={-45} textAnchor="end" height={80} />
+                                            <YAxis stroke="#808080" />
+                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+                                            <Bar dataKey="count" fill="#DC143C" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                
+                                <div style={styles.panel}>
+                                    <h3 style={{ marginBottom: '1rem', color: '#e0e0e0' }}>Tier Distribution</h3>
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <BarChart data={analyticsData.tierData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                            <XAxis dataKey="tier" stroke="#808080" />
+                                            <YAxis stroke="#808080" />
+                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+                                            <Bar dataKey="count" fill="#DC143C" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Role Tabs */}
+                        {heroes.length > 0 && (
+                            <div style={styles.tabs}>
+                                {['all', 'carry', 'mid', 'offlane', 'support', 'hard-support'].map(role => (
+                                    <button
+                                        key={role}
+                                        style={{
+                                            ...styles.tab,
+                                            ...(activeRole === role ? styles.activeTab : {})
+                                        }}
+                                        onClick={() => setActiveRole(role)}
+                                    >
+                                        {role.replace('-', ' ')}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {/* Loading State */}
+                        {loading && (
+                            <div style={styles.loading}>
+                                <div style={{
+                                    width: '50px',
+                                    height: '50px',
+                                    border: '3px solid #333',
+                                    borderTopColor: '#DC143C',
+                                    borderRadius: '50%',
+                                    margin: '0 auto 1rem'
+                                }} />
+                                <p style={{ textTransform: 'uppercase', letterSpacing: '2px' }}>Analyzing Meta Data</p>
+                            </div>
+                        )}
+                        
+                        {/* Error State */}
+                        {error && (
+                            <div style={styles.error}>
+                                <p style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Error Loading Data</p>
+                                <p>{error}</p>
+                                <p style={{ marginTop: '1rem', fontSize: '0.9em' }}>Make sure the backend server is running on port 3001</p>
+                            </div>
+                        )}
+                        
+                        {/* Heroes Grid */}
+                        {!loading && !error && filteredHeroes.length > 0 && (
+                            <div style={styles.heroGrid}>
+                                {filteredHeroes.map(hero => (
+                                    <HeroCard key={hero.id} hero={hero} />
+                                ))}
+                            </div>
+                        )}
+                        
+                        {/* Empty State */}
+                        {!loading && !error && heroes.length === 0 && (
+                            <div style={styles.loading}>
+                                <p style={{ textTransform: 'uppercase', letterSpacing: '2px' }}>
+                                    Click "Analyze Meta" to fetch hero data
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
